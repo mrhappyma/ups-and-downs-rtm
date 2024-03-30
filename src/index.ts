@@ -60,7 +60,7 @@ rtm.on("message", async (event) => {
     web.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
-      name: "white_check_mark",
+      name: "tw_white_check_mark",
     }),
   ]);
 
@@ -120,7 +120,7 @@ const noTeam = async (e: GenericMessageEvent) => {
     web.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
-      name: "bangbang",
+      name: "whoathere",
     }),
   ]);
 };
