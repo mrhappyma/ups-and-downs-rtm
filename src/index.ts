@@ -67,6 +67,7 @@ rtm.on("message", async (event) => {
   const w = n >= 100 || n <= -100;
   if (w) {
     count = 0;
+    lastCounter = null;
     await web.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
@@ -79,6 +80,7 @@ rtm.on("message", async (event) => {
       },
       data: {
         number: 0,
+        lastCounter: null,
         upTeamWins: {
           increment: wt == Team.UP ? 1 : 0,
         },
