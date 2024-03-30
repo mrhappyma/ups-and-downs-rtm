@@ -1,8 +1,8 @@
 import { RTMClient } from "@slack/rtm-api";
 import env from "./util/env.js";
 import { PrismaClient, Team } from "@prisma/client";
-import { GenericMessageEvent, MessageEvent } from "@slack/bolt";
 import { WebClient } from "@slack/web-api";
+import type { GenericMessageEvent, MessageEvent } from "@slack/bolt";
 
 const rtm = new RTMClient(env.TOKEN);
 const web = new WebClient(env.TOKEN);
