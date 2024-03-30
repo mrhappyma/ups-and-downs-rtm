@@ -1,5 +1,6 @@
 import type { Block, KnownBlock, App } from "@slack/bolt";
 import { prisma } from "./index.js";
+import { Cron } from "croner";
 
 const getTheLeadersOfTheBoard = async (userId: string, month: boolean) => {
   const g = await prisma.game.findFirstOrThrow();
@@ -112,3 +113,12 @@ export const initLeaderboardHandler = (bolt: App) => {
     });
   });
 };
+
+const resetLeaderboard = async () => {
+  await prisma.user.updateMany({
+    data: {
+      countsThisMonth: 0,
+    },
+  });
+};
+Cron("0 0 1 * *", resetLeaderboard);
