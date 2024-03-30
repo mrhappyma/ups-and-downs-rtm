@@ -9,6 +9,7 @@
     "@prisma/client": "^5.11.0",
     "@slack/rtm-api": "^6.2.1",
     "@slack/web-api": "^7.0.2",
+    "croner": "^8.0.1",
     "zod": "^3.22.4"
   },
   "type": "module"

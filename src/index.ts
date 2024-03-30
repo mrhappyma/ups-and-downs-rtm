@@ -3,6 +3,7 @@ import env from "./util/env.js";
 import { PrismaClient, Team } from "@prisma/client";
 import { WebClient } from "@slack/web-api";
 import type { GenericMessageEvent, MessageEvent } from "@slack/bolt";
+import Cron from "croner";
 
 const rtm = new RTMClient(env.TOKEN);
 const web = new WebClient(env.TOKEN);
@@ -189,3 +190,11 @@ const screwedUp = async (
 
 await rtm.start();
 console.log("yippee");
+
+if (env.STATUS_PUSH_URL) {
+  const updateStatus = async () => {
+    await fetch(env.STATUS_PUSH_URL!);
+  };
+  updateStatus();
+  new Cron("* * * * *", updateStatus);
+}
