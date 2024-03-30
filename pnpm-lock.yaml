@@ -17,9 +17,6 @@ dependencies:
   '@slack/web-api':
     specifier: ^7.0.2
     version: 7.0.2
-  croner:
-    specifier: ^8.0.1
-    version: 8.0.1
   zod:
     specifier: ^3.22.4
     version: 3.22.4
@@ -459,11 +456,6 @@ packages:
   /cookie@0.6.0:
     resolution: {integrity: sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==}
     engines: {node: '>= 0.6'}
-    dev: false
-
-  /croner@8.0.1:
-    resolution: {integrity: sha512-Hq1+lXVgjJjcS/U+uk6+yVmtxami0r0b+xVtlGyABgdz110l/kOnHWvlSI7nVzrTl8GCdZHwZS4pbBFT7hSL/g==}
-    engines: {node: '>=18.0'}
     dev: false
 
   /data-view-buffer@1.0.1:

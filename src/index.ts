@@ -5,7 +5,6 @@ import { WebClient } from "@slack/web-api";
 import type { GenericMessageEvent, MessageEvent } from "@slack/bolt";
 import Bolt from "@slack/bolt";
 const { App } = Bolt;
-import Cron from "croner";
 import { initLeaderboardHandler } from "./leaderboard.js";
 
 const rtm = new RTMClient(env.TOKEN);
@@ -226,5 +225,5 @@ if (env.STATUS_PUSH_URL) {
     await fetch(env.STATUS_PUSH_URL!);
   };
   updateStatus();
-  new Cron("* * * * *", updateStatus);
+  setInterval(updateStatus, 30000);
 }
