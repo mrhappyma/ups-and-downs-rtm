@@ -1,12 +1,12 @@
 {
   "devDependencies": {
-    "@slack/bolt": "^3.17.1",
     "@types/node": "^20.11.30",
     "prisma": "^5.11.0",
     "typescript": "^5.4.3"
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",
+    "@slack/bolt": "^3.17.1",
     "@slack/rtm-api": "^6.2.1",
     "@slack/web-api": "^7.0.2",
     "croner": "^8.0.1",

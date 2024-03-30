@@ -3,14 +3,41 @@ import env from "./util/env.js";
 import { PrismaClient, Team } from "@prisma/client";
 import { WebClient } from "@slack/web-api";
 import type { GenericMessageEvent, MessageEvent } from "@slack/bolt";
+import Bolt from "@slack/bolt";
+const { App } = Bolt;
 import Cron from "croner";
+import { initLeaderboardHandler } from "./leaderboard.js";
 
 const rtm = new RTMClient(env.TOKEN);
 const web = new WebClient(env.TOKEN);
-const prisma = new PrismaClient();
+export const bolt = new App({
+  token: env.TOKEN,
+  signingSecret: env.SIGNING_SECRET,
+  customRoutes: [
+    {
+      path: "/",
+      method: ["GET"],
+      handler: (req, res) => {
+        res.writeHead(200);
+        res.end(`Things are going just fine at ${req.headers.host}!`);
+      },
+    },
+    {
+      path: "/api/games",
+      method: ["GET"],
+      handler: async (req, res) => {
+        const games = await prisma.game.findMany();
+        res.writeHead(200);
+        res.end(JSON.stringify(games));
+      },
+    },
+  ],
+});
+export const prisma = new PrismaClient();
 
-const game = await prisma.game.findFirst();
-if (!game) throw new Error("database isn't set up, mate");
+initLeaderboardHandler(bolt);
+
+const game = await prisma.game.findFirstOrThrow();
 const id = game.id;
 let count = game.number;
 let lastCounter = game.lastCounter;
@@ -191,6 +218,7 @@ const screwedUp = async (
 };
 
 await rtm.start();
+await bolt.start(env.PORT);
 console.log("yippee");
 
 if (env.STATUS_PUSH_URL) {
