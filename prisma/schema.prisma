@@ -16,19 +16,18 @@ enum Team {
 }
 
 model User {
-    id              String  @id @unique
+    id              String    @id @unique
     team            Team
-    usedGrace       Boolean @default(false)
-    countsThisMonth Int     @default(0)
-    countsTotal     Int     @default(0)
+    usedGrace       Boolean   @default(false)
+    countsThisMonth Int       @default(0)
+    countsTotal     Int       @default(0)
+    lastCount       DateTime?
 }
 
 model Game {
-    id              Int     @id @default(autoincrement())
-    number          Int
-    lastCounter     String?
-    upTeamMembers   Int     @default(0)
-    downTeamMembers Int     @default(0)
-    upTeamWins      Int     @default(0)
-    downTeamWins    Int     @default(0)
+    id           Int     @id @default(autoincrement())
+    number       Int
+    lastCounter  String?
+    upTeamWins   Int     @default(0)
+    downTeamWins Int     @default(0)
 }

@@ -1,14 +1,16 @@
 import { RTMClient } from "@slack/rtm-api";
 import env from "./util/env.js";
 import { PrismaClient, Team } from "@prisma/client";
-import { WebClient } from "@slack/web-api";
 import type { GenericMessageEvent, MessageEvent } from "@slack/bolt";
 import Bolt from "@slack/bolt";
 const { App } = Bolt;
 import { initLeaderboardHandler } from "./leaderboard.js";
+import { initNewUserHandler } from "./new-user.js";
+import { initTeamCommandHandler } from "./team.js";
+import { WebClient } from "@slack/web-api";
 
 const rtm = new RTMClient(env.TOKEN);
-const web = new WebClient(env.TOKEN);
+const modern = new WebClient(env.MODERN_TOKEN);
 export const bolt = new App({
   token: env.TOKEN,
   signingSecret: env.SIGNING_SECRET,
@@ -34,7 +36,9 @@ export const bolt = new App({
 });
 export const prisma = new PrismaClient();
 
+initNewUserHandler(bolt);
 initLeaderboardHandler(bolt);
+initTeamCommandHandler(bolt);
 
 const game = await prisma.game.findFirstOrThrow();
 const id = game.id;
@@ -53,8 +57,7 @@ rtm.on("message", async (event) => {
     return screwedUp(e, ScrewedUpReason.doubleCount, count);
 
   const p = await getPerson(event.user);
-  if (!p) return noTeam(e);
-
+  if (!p) return;
   const next = p.t == Team.UP ? count + 1 : count - 1;
   if (next != n) return screwedUp(e, ScrewedUpReason.wrongCount, count);
 
@@ -81,12 +84,13 @@ rtm.on("message", async (event) => {
         countsTotal: {
           increment: 1,
         },
+        lastCount: new Date(),
       },
     }),
-    web.reactions.add({
+    bolt.client.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
-      name: "tw_white_check_mark",
+      name: "white_check_mark",
     }),
   ]);
 
@@ -94,7 +98,7 @@ rtm.on("message", async (event) => {
   if (w) {
     count = 0;
     lastCounter = null;
-    await web.reactions.add({
+    await bolt.client.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
       name: "tada",
@@ -125,7 +129,7 @@ rtm.on("message", async (event) => {
 });
 
 const people: Map<string, { t: Team; g: boolean } | null> = new Map();
-const getPerson = async (u: string) => {
+export const getPerson = async (u: string) => {
   const m = people.get(u);
   if (m) return m;
 
@@ -134,23 +138,67 @@ const getPerson = async (u: string) => {
       id: u,
     },
   });
-  const b = db ? { t: db.team, g: db.usedGrace } : null;
+  if (!db) {
+    const user = await bolt.client.users.info({
+      user: u,
+    });
+    if (user.user?.is_bot) return null;
+    const n = await generateNewUserTeam();
+    await prisma.user.create({
+      data: {
+        id: u,
+        team: n.t,
+      },
+    });
+    try {
+      const groupid = n.t == Team.UP ? env.UP_GROUP_ID : env.DOWN_GROUP_ID;
+      const group = await modern.usergroups.users.list({
+        usergroup: groupid,
+      });
+      await modern.usergroups.users.update({
+        usergroup: groupid,
+        users: `${group.users?.join(",")},${u}`,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+    people.set(u, { t: n.t, g: false });
+    return { t: n.t, g: false, m: n.method };
+  }
+  const b = { t: db.team, g: db.usedGrace };
   people.set(u, b);
   return b;
 };
 
-const noTeam = async (e: GenericMessageEvent) => {
-  await Promise.all([
-    rtm.sendMessage(
-      `I couldn't find what team you're on, <@${e.user}>. Run \`/team\` and try again?`,
-      e.channel
-    ),
-    web.reactions.add({
-      channel: e.channel,
-      timestamp: e.ts,
-      name: "whoathere",
-    }),
-  ]);
+export enum teamAssignmentMethod {
+  active,
+  all,
+  random,
+}
+const generateNewUserTeam = async () => {
+  const everyone = await prisma.user.findMany();
+  const ago = new Date();
+  ago.setDate(ago.getDate() - 14);
+  const activeTeamUp = everyone.filter(
+    (u) => u.team == Team.UP && (u.lastCount ?? 0) > ago
+  ).length;
+  const activeTeamDown = everyone.filter(
+    (u) => u.team == Team.DOWN && (u.lastCount ?? 0) > ago
+  ).length;
+  if (activeTeamDown > activeTeamUp)
+    return { t: Team.UP, method: teamAssignmentMethod.active };
+  if (activeTeamUp > activeTeamDown)
+    return { t: Team.DOWN, method: teamAssignmentMethod.active };
+  const allTeamUp = everyone.filter((u) => u.team == Team.UP).length;
+  const allTeamDown = everyone.filter((u) => u.team == Team.DOWN).length;
+  if (allTeamDown > allTeamUp)
+    return { t: Team.UP, method: teamAssignmentMethod.all };
+  if (allTeamUp > allTeamDown)
+    return { t: Team.DOWN, method: teamAssignmentMethod.all };
+  return {
+    t: Math.random() > 0.5 ? Team.UP : Team.DOWN,
+    method: teamAssignmentMethod.random,
+  };
 };
 
 enum ScrewedUpReason {
@@ -191,7 +239,7 @@ const screwedUp = async (
 
   await Promise.all([
     rtm.sendMessage(`${m1}\n${m2}`, e.channel),
-    web.reactions.add({
+    bolt.client.reactions.add({
       channel: e.channel,
       timestamp: e.ts,
       name: "bangbang",
