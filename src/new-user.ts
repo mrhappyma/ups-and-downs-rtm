@@ -10,7 +10,7 @@ export const initNewUserHandler = (bolt: App) => {
     if (!user) return;
     const g = user.t == Team.UP ? "up to 100" : "down to -100";
 
-    let m = "none - where you here before? or are you a ghost?";
+    let m = "none - were you here before? or are you a ghost?";
     //wacky ts
     if ("m" in user) {
       switch (user.m) {
