@@ -29,7 +29,6 @@ export const initWatchLatestMessage = (bolt: App, modern: WebClient) => {
       })
     ).messages;
     const message = messages ? messages[0] : undefined;
-    console.log(message);
     if (message?.ts != ts) {
       screwedUp(ScrewedUpReason.deleted, user, ts);
       setLatestMessage(undefined, undefined, undefined);
@@ -37,5 +36,5 @@ export const initWatchLatestMessage = (bolt: App, modern: WebClient) => {
       screwedUp(ScrewedUpReason.edited, user, ts);
       setLatestMessage(undefined, undefined, undefined);
     }
-  }, 2500);
+  }, 1500);
 };
