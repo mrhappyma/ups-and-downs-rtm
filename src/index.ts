@@ -8,6 +8,7 @@ import { initLeaderboardHandler } from "./leaderboard.js";
 import { initNewUserHandler } from "./new-user.js";
 import { initTeamCommandHandler } from "./team.js";
 import { WebClient } from "@slack/web-api";
+import { initWatchLatestMessage, setLatestMessage } from "./watch-message.js";
 
 const rtm = new RTMClient(env.TOKEN);
 const modern = new WebClient(env.MODERN_TOKEN);
@@ -39,11 +40,12 @@ export const prisma = new PrismaClient();
 initNewUserHandler(bolt);
 initLeaderboardHandler(bolt);
 initTeamCommandHandler(bolt);
+initWatchLatestMessage(bolt, modern);
 
 const game = await prisma.game.findFirstOrThrow();
 const id = game.id;
-let count = game.number;
-let lastCounter = game.lastCounter;
+export let count = game.number;
+export let lastCounter = game.lastCounter;
 
 rtm.on("message", async (event) => {
   const e = event as MessageEvent;
@@ -54,12 +56,12 @@ rtm.on("message", async (event) => {
   if (Number.isNaN(n)) return;
 
   if (e.user == lastCounter)
-    return screwedUp(e, ScrewedUpReason.doubleCount, count);
+    return screwedUp(ScrewedUpReason.doubleCount, e.user, e.ts);
 
-  const p = await getPerson(event.user);
+  const p = await getPerson(e.user);
   if (!p) return;
   const next = p.t == Team.UP ? count + 1 : count - 1;
-  if (next != n) return screwedUp(e, ScrewedUpReason.wrongCount, count);
+  if (next != n) return screwedUp(ScrewedUpReason.wrongCount, e.user, e.ts);
 
   count = n;
   lastCounter = e.user;
@@ -92,6 +94,7 @@ rtm.on("message", async (event) => {
       timestamp: e.ts,
       name: "white_check_mark",
     }),
+    setLatestMessage(e.ts, e.text!, e.user),
   ]);
 
   const w = n >= 100 || n <= -100;
@@ -201,32 +204,40 @@ const generateNewUserTeam = async () => {
   };
 };
 
-enum ScrewedUpReason {
+export enum ScrewedUpReason {
   doubleCount,
   wrongCount,
+  edited,
+  deleted,
 }
-const screwedUp = async (
-  e: GenericMessageEvent,
+export const screwedUp = async (
   r: ScrewedUpReason,
-  c: number
+  user: string,
+  ts: string
 ) => {
-  const p = (await getPerson(e.user)) as { t: Team; g: boolean };
-  const n = p.t == Team.UP ? c + 1 : c - 1;
-  const w = p.t == Team.UP ? c - 5 : c + 5;
+  const p = (await getPerson(user)) as { t: Team; g: boolean };
+  const n = p.t == Team.UP ? count + 1 : count - 1;
+  const w = p.t == Team.UP ? count - 5 : count + 5;
   let m1;
   let m2;
   switch (r) {
     case ScrewedUpReason.doubleCount:
-      m1 = `You can't count twice in a row, <@${e.user}>!`;
+      m1 = `You can't count twice in a row, <@${user}>!`;
       break;
     case ScrewedUpReason.wrongCount:
-      m1 = `That's not the right number, <@${e.user}>! You're on team ${p.t}, so the next number should have been ${n}`;
+      m1 = `That's not the right number, <@${user}>! You're on team ${p.t}, so the next number should have been ${n}`;
+      break;
+    case ScrewedUpReason.edited:
+      m1 = `You can't edit your counting messages, <@${user}>!`;
+      break;
+    case ScrewedUpReason.deleted:
+      m1 = `Got'em! <@${user}> deleted one of their counts!`;
       break;
   }
   // true if they've already used it
   switch (p.g) {
     case false:
-      people.set(e.user, { t: p.t, g: true });
+      people.set(user, { t: p.t, g: true });
       m2 =
         "Since this is your first time screwing up, I'll let you off with a warning. Don't let it happen again!";
       break;
@@ -238,12 +249,14 @@ const screwedUp = async (
   }
 
   await Promise.all([
-    rtm.sendMessage(`${m1}\n${m2}`, e.channel),
-    bolt.client.reactions.add({
-      channel: e.channel,
-      timestamp: e.ts,
-      name: "bangbang",
-    }),
+    rtm.sendMessage(`${m1}\n${m2}`, env.CHANNEL),
+    r != ScrewedUpReason.deleted
+      ? bolt.client.reactions.add({
+          channel: env.CHANNEL,
+          timestamp: ts,
+          name: "bangbang",
+        })
+      : null,
     prisma.game.update({
       where: {
         id,
@@ -256,7 +269,7 @@ const screwedUp = async (
   if (!p.g)
     await prisma.user.update({
       where: {
-        id: e.user,
+        id: user,
       },
       data: {
         usedGrace: true,
