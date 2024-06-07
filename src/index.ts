@@ -215,9 +215,11 @@ export const screwedUp = async (
   user: string,
   ts: string
 ) => {
+  let a = 5;
+  if (r == ScrewedUpReason.deleted) a = 7;
   const p = (await getPerson(user)) as { t: Team; g: boolean };
   const n = p.t == Team.UP ? count + 1 : count - 1;
-  const w = p.t == Team.UP ? count - 5 : count + 5;
+  const w = p.t == Team.UP ? count - a : count + a;
   let m1;
   let m2;
   switch (r) {
@@ -243,7 +245,7 @@ export const screwedUp = async (
       break;
     case true:
       count = w;
-      m2 = `As punishment for your wrongdoing I'm moving the game 5 points in the other direction. Counting resumes from ${w}, meaning the next number is ${
+      m2 = `As punishment for your wrongdoing I'm moving the game ${a} points in the other direction. Counting resumes from ${w}, meaning the next number is ${
         w - 1
       } or ${w + 1} depending on your team.`;
   }
