@@ -33,7 +33,7 @@ export const initNewUserHandler = (bolt: App) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Hey <@${event.user}>! Welcome to <#${env.CHANNEL}>!\nYou're on team *${user.t}*, which means your goal is to get the number ${g}.`,
+            text: `Hey <@${event.user}>! Welcome to <#${env.CHANNEL}>!\nYou're on team *${user.t}*, which means your goal is to help get the number ${g}.`,
           },
         },
         {
