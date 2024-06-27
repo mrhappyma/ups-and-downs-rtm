@@ -181,7 +181,7 @@ export enum teamAssignmentMethod {
 const generateNewUserTeam = async () => {
   const everyone = await prisma.user.findMany();
   const ago = new Date();
-  ago.setDate(ago.getDate() - 14);
+  ago.setDate(ago.getDate() - 7);
   const activeTeamUp = everyone.filter(
     (u) => u.team == Team.UP && (u.lastCount ?? 0) > ago
   ).length;
