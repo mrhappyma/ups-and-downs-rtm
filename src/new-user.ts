@@ -27,7 +27,7 @@ export const initNewUserHandler = (bolt: App) => {
     }
     await bolt.client.chat.postMessage({
       channel: env.CHANNEL,
-      text: `Hey <@${event.user}>! Welcome to <#${env.CHANNEL}>!\nYou're on team *${user.t}*, which means your goal is to get the number ${g}.`,
+      text: `Hey <@${event.user}>! Welcome to <#${env.CHANNEL}>!\nYou're on team *${user.t}*, which means your goal is to get the count ${g}.`,
       blocks: [
         {
           type: "section",
