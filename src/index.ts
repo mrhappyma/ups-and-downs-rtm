@@ -51,6 +51,7 @@ rtm.on("message", async (event) => {
   const e = event as MessageEvent;
   if (e.channel != env.CHANNEL) return;
   if (e.subtype) return;
+  if (e.thread_ts) return;
 
   const n = parseInt(e.text ?? "");
   if (Number.isNaN(n)) return;
