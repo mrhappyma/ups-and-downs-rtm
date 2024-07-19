@@ -20,19 +20,19 @@ export const setLatestMessage = (
 export const initWatchLatestMessage = (bolt: App, modern: WebClient) => {
   setInterval(async () => {
     if (!ts || !text || !user) return;
-    const messages = (
-      await modern.conversations.history({
-        latest: ts,
-        channel: env.CHANNEL,
-        limit: 5,
-        inclusive: true,
-      })
-    ).messages;
-    const message = messages?.find((m) => m.ts == ts);
-    if (!message) {
+    const message = await modern.conversations.history({
+      channel: env.CHANNEL,
+      latest: ts,
+      limit: 1,
+      inclusive: true,
+    });
+    if (!message.ok) return;
+    if (!message.messages || message.messages.length === 0) return;
+    const m = message.messages[0];
+    if (m.ts != ts) {
       screwedUp(ScrewedUpReason.deleted, user, ts);
       setLatestMessage(undefined, undefined, undefined);
-    } else if (message.text != text) {
+    } else if (m.text != text) {
       screwedUp(ScrewedUpReason.edited, user, ts);
       setLatestMessage(undefined, undefined, undefined);
     }
