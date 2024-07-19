@@ -28,11 +28,11 @@ export const initWatchLatestMessage = (bolt: App, modern: WebClient) => {
         inclusive: true,
       })
     ).messages;
-    const message = messages?.find((m) => m.ts === ts && m.text === text);
+    const message = messages?.find((m) => m.ts == ts);
     if (!message) {
       screwedUp(ScrewedUpReason.deleted, user, ts);
       setLatestMessage(undefined, undefined, undefined);
-    } else if (message.text !== text) {
+    } else if (message.text != text) {
       screwedUp(ScrewedUpReason.edited, user, ts);
       setLatestMessage(undefined, undefined, undefined);
     }
