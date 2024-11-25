@@ -8,7 +8,6 @@ import { initLeaderboardHandler } from "./leaderboard.js";
 import { initNewUserHandler } from "./new-user.js";
 import { initTeamCommandHandler } from "./team.js";
 import { WebClient } from "@slack/web-api";
-import { initWatchLatestMessage, setLatestMessage } from "./watch-message.js";
 
 const rtm = new RTMClient(env.TOKEN);
 const modern = new WebClient(env.MODERN_TOKEN);
@@ -40,7 +39,6 @@ export const prisma = new PrismaClient();
 initNewUserHandler(bolt);
 initLeaderboardHandler(bolt);
 initTeamCommandHandler(bolt);
-initWatchLatestMessage(bolt, modern);
 
 const game = await prisma.game.findFirstOrThrow();
 const id = game.id;
@@ -95,7 +93,6 @@ rtm.on("message", async (event) => {
       timestamp: e.ts,
       name: "white_check_mark",
     }),
-    setLatestMessage(e.ts, e.text!, e.user),
   ]);
 
   const w = n >= 100 || n <= -100;
