@@ -8,6 +8,7 @@ import { initLeaderboardHandler } from "./leaderboard.js";
 import { initNewUserHandler } from "./new-user.js";
 import { initTeamCommandHandler } from "./team.js";
 import { WebClient } from "@slack/web-api";
+import { ExtendedWebSocket, Router, WebSocketExpress } from "websocket-express";
 
 const rtm = new RTMClient(env.TOKEN);
 const modern = new WebClient(env.MODERN_TOKEN);
@@ -35,6 +36,35 @@ export const bolt = new App({
   ],
 });
 export const prisma = new PrismaClient();
+
+const eventsApp = new WebSocketExpress();
+const eventsRouter = new Router();
+
+const sockets = new Map<string, ExtendedWebSocket>();
+
+eventsRouter.ws("/", async (req, res) => {
+  const ws = await res.accept();
+  const id = Math.random().toString(36).substring(2);
+  sockets.set(id, ws);
+  ws.on("close", () => {
+    sockets.delete(id);
+  });
+});
+
+const broadcastEvent = (event: BroadcastedEvent) => {
+  const data = JSON.stringify(event);
+  for (const [id, socket] of sockets) {
+    if (socket.readyState === socket.OPEN) {
+      socket.send(data);
+    } else {
+      sockets.delete(id);
+    }
+  }
+};
+
+eventsApp.use(eventsRouter);
+const server = eventsApp.createServer();
+server.listen(parseInt(env.PORT) + 1);
 
 initNewUserHandler(bolt);
 initLeaderboardHandler(bolt);
@@ -94,6 +124,12 @@ rtm.on("message", async (event) => {
       name: "white_check_mark",
     }),
   ]);
+  broadcastEvent({
+    type: "count",
+    user: e.user,
+    "user-team": p.t,
+    resultingCount: n,
+  });
 
   const w = n >= 100 || n <= -100;
   if (w) {
@@ -126,6 +162,12 @@ rtm.on("message", async (event) => {
       }\nTeam Down wins: ${(await g).downTeamWins}`,
       e.channel
     );
+    broadcastEvent({
+      type: "win",
+      user: e.user,
+      "user-team": wt,
+      resultingCount: 0,
+    });
   }
 });
 
@@ -275,6 +317,13 @@ export const screwedUp = async (
         usedGrace: true,
       },
     });
+
+  broadcastEvent({
+    type: "screwed-up",
+    user,
+    "user-team": p.t,
+    resultingCount: count,
+  });
 };
 
 await rtm.start();
